@@ -1,0 +1,7 @@
+(*) Xiaobot.java
+    - Should be capable of connecting and disconnecting
+    - Should be capable of sending and receiving lines
+
+(*) Interpretation of lines should be handled by another class for purposes of handling triggers/features (?)
+
+
