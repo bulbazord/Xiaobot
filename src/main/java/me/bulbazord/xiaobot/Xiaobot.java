@@ -5,12 +5,23 @@ import java.net.*;
 
 public class Xiaobot{
 
+    // Network Connection and I/O stuff
     private Socket socket;
     private BufferedReader buffread;
     private BufferedWriter buffwrite;
 
+    private boolean running;
+
+    public Xiaobot() {
+        this.running = true;
+    }
+
     public Socket getSocket() {
         return this.socket;
+    }
+    
+    public boolean isRunning() {
+        return this.running;
     }
 
     public boolean connect(String hostname, int port) {
@@ -18,7 +29,6 @@ public class Xiaobot{
             this.socket = new Socket(hostname, port);
             InputStreamReader isr = new InputStreamReader(this.socket.getInputStream(), "UTF-8");
             OutputStreamWriter osw = new OutputStreamWriter(this.socket.getOutputStream(), "UTF-8");
-
             this.buffread = new BufferedReader(isr);
             this.buffwrite = new BufferedWriter(osw);
             return true;
@@ -68,21 +78,36 @@ public class Xiaobot{
         }
     }
 
+    public void parseLine(String line) {
+        try {
+            //System.out.println(System.currentTimeMillis() + " - " + line);
+            String[] messageComponents = line.split("\\s", 3);
+            for (int i = 0; i < messageComponents.length; i++) {
+                System.out.print(messageComponents[i] + " | ");
+            }
+            System.out.println();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String args[]) {
+        if (args.length != 2) {
+            System.out.println("Please provide server and port number only");
+            System.exit(0);
+        }
         String hostname = args[0];
         int port = Integer.parseInt(args[1]);
 
         Xiaobot xiaobot = new Xiaobot();
-
-        // Connect
-
         xiaobot.connect(hostname, port);
 
         xiaobot.sendLine("NICK xiaobot");
         xiaobot.sendLine("USER xiaobot 8 * :xiaobot");
-        while (true) {
+        while (xiaobot.isRunning()) {
             while (xiaobot.readReady()) {
-                System.out.println(System.currentTimeMillis() + " - " + xiaobot.readLine());
+                String incomingLine = xiaobot.readLine();
+                xiaobot.parseLine(incomingLine);
             }
         }
     }
