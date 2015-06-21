@@ -12,12 +12,15 @@ public class Xiaobot{
     private BufferedReader buffread;
     private BufferedWriter buffwrite;
 
+    private Config config;
+
     private boolean running;
 
     /**
      * Default constructor, sets up default configurations.
      */
-    public Xiaobot() {
+    public Xiaobot(Config config) {
+        this.config = config;
         this.running = true;
     }
 
@@ -28,6 +31,15 @@ public class Xiaobot{
      */
     public Socket getSocket() {
         return this.socket;
+    }
+
+    /**
+     * Returns the bot's configuration information.
+     * 
+     * @return The bot's configuration.
+     */
+    public Config getConfig() {
+        return this.config;
     }
     
     /**
@@ -127,26 +139,60 @@ public class Xiaobot{
      */
     public void parseLine(String line) {
         System.out.println(System.currentTimeMillis() + " - " + line);
-        try {
-            String[] messageComponents = line.split("\\s", 3);
-            String sender;
-            // Not all commands have a sender -- See PING
-            if (messageComponents[0].startsWith(":")) {
-                sender = messageComponents[0];
-                messageComponents = Arrays.copyOfRange(messageComponents, 1, messageComponents.length);
-            }
-            //TODO switch statement, handle commands
-            switch(messageComponents[0]) {
 
-            case "PING":
-                sendLine("PONG " + messageComponents[1]);
-                break;
+        // Parsing stuffs
+        String[] messageComponents = line.split("\\s", 4);
+        String sender = null;
+        String senderUsername = null;
+        String senderHostname = null;
+        String receiver = null;
 
-            default:
-                break;
+        // Not all commands have a sender
+        if (messageComponents[0].startsWith(":")) {
+            sender = messageComponents[0];
+            messageComponents = Arrays.copyOfRange(messageComponents, 1, messageComponents.length);
+            if (sender.contains("!")) {
+                String[] temp = sender.split("!");
+                sender = temp[0];
+                sender = sender.substring(1); // remove leading colon
+                temp = temp[1].split("@");
+                senderUsername = temp[0];
+                senderUsername = senderUsername.substring(1); // remove leading tilde
+                senderHostname = temp[1];
+            } 
+        }
+
+        // Switch statement, handle commands
+        switch(messageComponents[0]) {
+
+        case "PING":
+            sendLine("PONG " + messageComponents[1]);
+            break;
+
+        /* If we try to do it everytime we receive a notice
+         * we'll get a back and forth between nickserv and xiaobot.
+         * 376 is end of MOTD.
+         * 
+         * TODO: Do this not like shit.
+         */
+        case "376":
+            sendLine("PRIVMSG NickServ :IDENTIFY " + getConfig().nickname + " " + getConfig().password);
+            break;
+
+        //TODO handle messages and commands not like shit
+        case "PRIVMSG":
+            receiver = messageComponents[1];
+            if (sender.equals(getConfig().handler) && receiver.equals(getConfig().nickname)) {
+                if (messageComponents[2].startsWith(":!j")) {
+                    //TODO add error checking
+                    String[] temp = messageComponents[2].split(" ");
+                    sendLine("JOIN " + temp[1]);
+                }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            break;
+
+        default:
+            break;
         }
     }
 
@@ -157,19 +203,23 @@ public class Xiaobot{
      * @param args Command line args fed into program.
      */
     public static void main(String args[]) {
-        if (args.length != 2) {
-            System.out.println("Please provide server and port number only");
+        if (args.length != 4) {
+            System.out.println("Please provide server, port number, account password, and nick of handler only");
             System.exit(0);
         }
         String hostname = args[0];
         int port = Integer.parseInt(args[1]);
+        String password = args[2];
+        String handler = args[3];
 
-        Xiaobot xiaobot = new Xiaobot();
-        boolean connected = xiaobot.connect(hostname, port);
+        Config xiaobotConfig = new Config(hostname, port, "xiaobot", "xiaobot", password, handler);
+
+        Xiaobot xiaobot = new Xiaobot(xiaobotConfig);
+        boolean connected = xiaobot.connect(xiaobot.getConfig().network, xiaobot.getConfig().port);
 
         if (connected) {
-            xiaobot.sendLine("NICK xiaobot");
-            xiaobot.sendLine("USER xiaobot 8 * :xiaobot");
+            xiaobot.sendLine("NICK " + xiaobot.getConfig().nickname);
+            xiaobot.sendLine("USER " + xiaobot.getConfig().nickname + " 8  * :" + xiaobot.getConfig().realname);
             while (xiaobot.isRunning()) {
                 while (xiaobot.readReady()) {
                     String incomingLine = xiaobot.readLine();
