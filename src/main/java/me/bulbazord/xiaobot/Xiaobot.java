@@ -176,7 +176,6 @@ public class Xiaobot{
          * TODO: Do this not like shit.
          */
         case "376":
-            sendLine("PRIVMSG NickServ :IDENTIFY " + getConfig().nickname + " " + getConfig().password);
             break;
 
         //TODO handle messages and commands not like shit
@@ -187,6 +186,10 @@ public class Xiaobot{
                     //TODO add error checking
                     String[] temp = messageComponents[2].split(" ");
                     sendLine("JOIN " + temp[1]);
+                } else if (messageComponents[2].startsWith(":!auth")) {
+                    //TODO add error checking
+                    String[] temp = messageComponents[2].split(" ");
+                    sendLine("PRIVMSG NickServ :IDENTIFY " + getConfig().nickname + " " + temp[1]);
                 }
             }
             break;
@@ -203,16 +206,15 @@ public class Xiaobot{
      * @param args Command line args fed into program.
      */
     public static void main(String args[]) {
-        if (args.length != 4) {
-            System.out.println("Please provide server, port number, account password, and nick of handler only");
+        if (args.length != 3) {
+            System.out.println("Please provide server, port number, and nick of handler only");
             System.exit(0);
         }
         String hostname = args[0];
         int port = Integer.parseInt(args[1]);
-        String password = args[2];
-        String handler = args[3];
+        String handler = args[2];
 
-        Config xiaobotConfig = new Config(hostname, port, "xiaobot", "xiaobot", password, handler);
+        Config xiaobotConfig = new Config(hostname, port, "xiaobot", "xiaobot", handler);
 
         Xiaobot xiaobot = new Xiaobot(xiaobotConfig);
         boolean connected = xiaobot.connect(xiaobot.getConfig().network, xiaobot.getConfig().port);
