@@ -182,14 +182,23 @@ public class Xiaobot{
         case "PRIVMSG":
             receiver = messageComponents[1];
             if (sender.equals(getConfig().handler) && receiver.equals(getConfig().nickname)) {
-                if (messageComponents[2].startsWith(":!j")) {
+                if (messageComponents[2].startsWith(":!join ")) {
                     //TODO add error checking
                     String[] temp = messageComponents[2].split(" ");
                     sendLine("JOIN " + temp[1]);
                 } else if (messageComponents[2].startsWith(":!auth")) {
                     //TODO add error checking
                     String[] temp = messageComponents[2].split(" ");
-                    sendLine("PRIVMSG NickServ :IDENTIFY " + getConfig().nickname + " " + temp[1]);
+                    sendLine("PRIVMSG NickServ :IDENTIFY " + getConfig().nickname + " " + getConfig().password);
+                } else if (messageComponents[2].startsWith(":!nick")) {
+                    //TODO add error checking
+                    String[] temp = messageComponents[2].split(" ");
+                    sendLine("NICK " + temp[1]);
+                    getConfig().nickname = temp[1];
+                } else if (messageComponents[2].startsWith(":!part ")) {
+                    //TODO add error checking
+                    String[] temp = messageComponents[2].split(" ");
+                    sendLine("PART " + temp[1]);
                 }
             }
             break;
@@ -206,15 +215,16 @@ public class Xiaobot{
      * @param args Command line args fed into program.
      */
     public static void main(String args[]) {
-        if (args.length != 3) {
-            System.out.println("Please provide server, port number, and nick of handler only");
+        if (args.length != 4) {
+            System.out.println("Please provide server, port number, password, and nick of handler only");
             System.exit(0);
         }
         String hostname = args[0];
         int port = Integer.parseInt(args[1]);
-        String handler = args[2];
+        String password = args[2];
+        String handler = args[3];
 
-        Config xiaobotConfig = new Config(hostname, port, "xiaobot", "xiaobot", handler);
+        Config xiaobotConfig = new Config(hostname, port, "xiaobot", "xiaobot", password, handler);
 
         Xiaobot xiaobot = new Xiaobot(xiaobotConfig);
         boolean connected = xiaobot.connect(xiaobot.getConfig().network, xiaobot.getConfig().port);
