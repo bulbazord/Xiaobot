@@ -223,7 +223,7 @@ public class Xiaobot{
         System.out.print("Please enter the bot's NickServ password before connecting: ");
         char[] pass = cons.readPassword();
         String password = new String(pass);
-        //Arrays.fill(pass, '\0');
+        Arrays.fill(pass, '\0');
 
         Config xiaobotConfig = new Config();
         xiaobotConfig.loadConfig();
