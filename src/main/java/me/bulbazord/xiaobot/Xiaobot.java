@@ -176,6 +176,7 @@ public class Xiaobot{
          * TODO: Do this not like shit.
          */
         case "376":
+            sendLine("PRIVMSG NickServ :IDENTIFY " + getConfig().nickname + " " + getConfig().password);
             break;
 
         //TODO handle messages and commands not like shit
@@ -186,10 +187,6 @@ public class Xiaobot{
                     //TODO add error checking
                     String[] temp = messageComponents[2].split(" ");
                     sendLine("JOIN " + temp[1]);
-                } else if (messageComponents[2].startsWith(":!auth")) {
-                    //TODO add error checking
-                    String[] temp = messageComponents[2].split(" ");
-                    sendLine("PRIVMSG NickServ :IDENTIFY " + getConfig().nickname + " " + getConfig().password);
                 } else if (messageComponents[2].startsWith(":!nick")) {
                     //TODO add error checking
                     String[] temp = messageComponents[2].split(" ");
@@ -215,17 +212,23 @@ public class Xiaobot{
      * @param args Command line args fed into program.
      */
     public static void main(String args[]) {
-        if (args.length != 4) {
-            System.out.println("Please provide server, port number, password, and nick of handler only");
+        // Get server information
+        if (args.length != 3) {
+            System.out.println("Please provide server, port number, and nick of handler only");
             System.exit(0);
         }
         String hostname = args[0];
         int port = Integer.parseInt(args[1]);
-        String password = args[2];
-        String handler = args[3];
+        String handler = args[2];
+
+        // Get authentication password
+        Console cons = System.console();
+        System.out.print("Please enter the bot's NickServ password before connecting: ");
+        char[] pass = cons.readPassword();
+        String password = new String(pass);
+        Arrays.fill(pass, '\0');
 
         Config xiaobotConfig = new Config(hostname, port, "xiaobot", "xiaobot", password, handler);
-
         Xiaobot xiaobot = new Xiaobot(xiaobotConfig);
         boolean connected = xiaobot.connect(xiaobot.getConfig().network, xiaobot.getConfig().port);
 
