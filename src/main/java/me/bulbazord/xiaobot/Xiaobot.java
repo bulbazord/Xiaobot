@@ -3,8 +3,13 @@ package me.bulbazord.xiaobot;
 import java.io.*;
 import java.net.*;
 import java.util.Arrays;
-import java.util.ArrayList;
 
+/**
+ * A personal IRC bot for fun and non-profit.
+ *
+ * @version 0.1
+ * @author Alexander Langford
+ */
 public class Xiaobot{
 
     // Network Connection and I/O stuff
@@ -212,23 +217,17 @@ public class Xiaobot{
      * @param args Command line args fed into program.
      */
     public static void main(String args[]) {
-        // Get server information
-        if (args.length != 3) {
-            System.out.println("Please provide server, port number, and nick of handler only");
-            System.exit(0);
-        }
-        String hostname = args[0];
-        int port = Integer.parseInt(args[1]);
-        String handler = args[2];
 
         // Get authentication password
         Console cons = System.console();
         System.out.print("Please enter the bot's NickServ password before connecting: ");
         char[] pass = cons.readPassword();
         String password = new String(pass);
-        Arrays.fill(pass, '\0');
+        //Arrays.fill(pass, '\0');
 
-        Config xiaobotConfig = new Config(hostname, port, "xiaobot", "xiaobot", password, handler);
+        Config xiaobotConfig = new Config();
+        xiaobotConfig.loadConfig();
+        xiaobotConfig.setPassword(password);
         Xiaobot xiaobot = new Xiaobot(xiaobotConfig);
         boolean connected = xiaobot.connect(xiaobot.getConfig().network, xiaobot.getConfig().port);
 
