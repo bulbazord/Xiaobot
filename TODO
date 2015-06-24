@@ -1,0 +1,41 @@
+Add multithreading support (input/output seperate from bot right now, I think)
+	- Create a thread that does the following:
+		(1) Create a synchronized message Queue to send to server
+		(2) Wait until message queue has an message, if no messages in queue.
+		(3) When there is a message, send it.
+		(4) Goto 2
+
+		This will be implemented by having a Thread in the Xiaobot class that takes
+		in a Sender (implements Runnable) that will handle the above steps.
+
+	- Something similar for receiving messages
+
+Handle commands properly instead of shoving everything into a method in the bot
+	- Implementation: Not using Java 8 so lambdas are out of the question. Create a 
+	  Command interface and create a HashMap mapping strings (commands) to Command 
+	  objects, and then use the command object to run the actual command method or 
+	  whatever.
+
+	- See: Command pattern
+
+	- Rough idea: Ultimately, all commands will be messages sent to the server. So
+	  we could do something like "when a message is received, parse it and see if
+	  it's a command/trigger. If it is, execute the method representing that
+	  command/trigger, which will throw something into the out message
+	  queue for the sender thread to send to the server"
+
+Authenticate who can give commands
+
+	- For now, I'm hardcoding my nickname into the configuration file. But I should
+	  probably think of a better way to figure out who is allowed and maybe have a
+	  file like ALLOWABLE_COMMAND_GIVERS.txt file for things power users of Xiaobot.
+
+Better configuration file setup
+
+	- Local directory? (i.e. the one where the jar is? Or should it be a dotfile?)
+	  I have too many dotfiles so maybe local directory is better.
+
+Better authentication
+
+	- Right now, the bot prompts a password to identify with Nickserv before even
+	  even connecting. I should also star out the password in the logs when it sends it...
