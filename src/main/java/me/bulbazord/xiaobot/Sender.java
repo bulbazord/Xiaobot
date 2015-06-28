@@ -1,6 +1,8 @@
+package me.bulbazord.xiaobot;
+
 public class Sender implements Runnable {
 
-    public Sender() {
+    public Sender(Xiaobot xiaobot) {
     }
 
     public void run() {

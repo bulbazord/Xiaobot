@@ -2,7 +2,8 @@ package me.bulbazord.xiaobot;
 
 import java.io.*;
 import java.net.*;
-import java.util.Arrays;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * A personal IRC bot for fun and non-profit.
@@ -18,14 +19,17 @@ public class Xiaobot{
     private BufferedWriter buffwrite;
 
     private Config config;
+    private Parser parser;
+    private BlockingQueue<String> toParse;
 
     private boolean running;
 
     /**
      * Default constructor, sets up default configurations.
      */
-    public Xiaobot(Config config) {
+    public Xiaobot(Config config, Parser parser) {
         this.config = config;
+        this.parser = parser;
         this.running = true;
     }
 
@@ -138,75 +142,21 @@ public class Xiaobot{
     }
 
     /**
-     * Method to parse incoming line.
+     * Method to pass given line to Parser.
+     * This is achieved by inserting the line
+     * into the toParse queue. The Parser will
+     * handle it in another thread.
      *
      * @param line The line to parse.
      */
-    public void parseLine(String line) {
-        System.out.println(System.currentTimeMillis() + " - " + line);
-
-        // Parsing stuffs
-        String[] messageComponents = line.split("\\s", 4);
-        String sender = null;
-        String senderUsername = null;
-        String senderHostname = null;
-        String receiver = null;
-
-        // Not all commands have a sender
-        if (messageComponents[0].startsWith(":")) {
-            sender = messageComponents[0];
-            messageComponents = Arrays.copyOfRange(messageComponents, 1, messageComponents.length);
-            if (sender.contains("!")) {
-                String[] temp = sender.split("!");
-                sender = temp[0];
-                sender = sender.substring(1); // remove leading colon
-                temp = temp[1].split("@");
-                senderUsername = temp[0];
-                senderUsername = senderUsername.substring(1); // remove leading tilde
-                senderHostname = temp[1];
-            } 
-        }
-
-        // Switch statement, handle commands
-        switch(messageComponents[0]) {
-
-        case "PING":
-            sendLine("PONG " + messageComponents[1]);
-            break;
-
-        /* If we try to do it everytime we receive a notice
-         * we'll get a back and forth between nickserv and xiaobot.
-         * 376 is end of MOTD.
-         * 
-         * TODO: Do this not like shit.
-         */
-        case "376":
-            sendLine("PRIVMSG NickServ :IDENTIFY " + getConfig().nickname + " " + getConfig().password);
-            break;
-
-        //TODO handle messages and commands not like shit
-        case "PRIVMSG":
-            receiver = messageComponents[1];
-            if (sender.equals(getConfig().handler) && receiver.equals(getConfig().nickname)) {
-                if (messageComponents[2].startsWith(":!join ")) {
-                    //TODO add error checking
-                    String[] temp = messageComponents[2].split(" ");
-                    sendLine("JOIN " + temp[1]);
-                } else if (messageComponents[2].startsWith(":!nick")) {
-                    //TODO add error checking
-                    String[] temp = messageComponents[2].split(" ");
-                    sendLine("NICK " + temp[1]);
-                    getConfig().nickname = temp[1];
-                } else if (messageComponents[2].startsWith(":!part ")) {
-                    //TODO add error checking
-                    String[] temp = messageComponents[2].split(" ");
-                    sendLine("PART " + temp[1]);
-                }
+    public void insertToParse(String line) {
+        synchronized(this.toParse) {
+            try {
+                this.toParse.put(line);
+                this.toParse.notify();
+            } catch (InterruptedException e) {
+                // Ignore for now
             }
-            break;
-
-        default:
-            break;
         }
     }
 
@@ -225,11 +175,22 @@ public class Xiaobot{
         String password = new String(pass);
         Arrays.fill(pass, '\0');
 
+
+        // Create xiaobot
         Config xiaobotConfig = new Config();
         xiaobotConfig.loadConfig();
         xiaobotConfig.setPassword(password);
-        Xiaobot xiaobot = new Xiaobot(xiaobotConfig);
+        Xiaobot xiaobot = new Xiaobot(xiaobotConfig, parser);
         boolean connected = xiaobot.connect(xiaobot.getConfig().network, xiaobot.getConfig().port);
+
+        // Set up the parser and its thread
+        /* TODO - You were still setting this shit up,
+         * concerns are as follows:
+         * Create the parser correctly, start it in its own thread,
+         * and then finish the parser. Not hard.
+         */
+        BlockingQueue<String> toParse = new LinkedBlockingQueue<String>();
+        Parser parser = new Parser(xiaobot, toParse);
 
         if (connected) {
             xiaobot.sendLine("NICK " + xiaobot.getConfig().nickname);
@@ -237,7 +198,7 @@ public class Xiaobot{
             while (xiaobot.isRunning()) {
                 while (xiaobot.readReady()) {
                     String incomingLine = xiaobot.readLine();
-                    xiaobot.parseLine(incomingLine);
+                    xiaobot.insertToParse(incomingLine);
                 }
             }
         }
